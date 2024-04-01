@@ -30,7 +30,7 @@ pub struct User {
     pub password: String,
 }
 
-#[derive(Queryable, Serialize, Validate)]
+#[derive(Queryable, Serialize, Validate, Debug)]
 pub struct UserWithoutPassword {
     pub id: Uuid,
     pub name: String,
@@ -72,7 +72,7 @@ impl User {
     pub fn find_by_email(email: &str, conn: &mut PgConnection) -> Option<UserWithoutPassword> {
         use crate::schema::users::dsl::*;
 
-        let user = users
+        let user: Option<UserWithoutPassword> = users
             .select((id, name, email))
             .filter(email.eq(email))
             .first::<UserWithoutPassword>(conn)

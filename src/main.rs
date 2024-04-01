@@ -25,7 +25,13 @@ use std::os::unix::net::SocketAddr;
 
 #[tokio::main]
 async fn main() {
-    let routes = Router::new().route("/user", post(create_user).get(get_user).delete(delete_user));
+    let routes = Router::new().route(
+        "/user",
+        post(create_user)
+            .get(get_user)
+            .delete(delete_user)
+            .put(update_user),
+    );
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, routes).await.unwrap();
@@ -42,6 +48,7 @@ async fn create_user(
 }
 
 async fn get_user(Json(payload): Json<EmailPayload>) -> impl IntoResponse {
+    println!("hallo");
     match payload.validate() {
         Ok(_) => {}
         Err(e) => {
@@ -81,5 +88,19 @@ async fn delete_user(Json(payload): Json<EmailPayload>) -> impl IntoResponse {
             .status(StatusCode::BAD_REQUEST)
             .body(e.to_string().into())
             .unwrap(),
+    }
+}
+
+async fn update_user(Json(payload): Json<User>) {
+    print!("hallo");
+    let mut connection = db::establish_connection();
+
+    match User::find_by_email(&payload.email, &mut connection) {
+        Some(user) => {
+            println!("hallo {:?}", user);
+        }
+        None => {
+            println!("123")
+        }
     }
 }
