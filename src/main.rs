@@ -17,7 +17,7 @@ mod db;
 mod schema;
 use models::{
     post::{NewPost, Post},
-    user::{EmailPayload, User, UserWithoutId},
+    user::{EmailPayload, User, UserUpdate, UserWithoutId},
 };
 use validator::Validate;
 
@@ -28,9 +28,9 @@ async fn main() {
     let routes = Router::new().route(
         "/user",
         post(create_user)
+            .put(update_user)
             .get(get_user)
-            .delete(delete_user)
-            .put(update_user),
+            .delete(delete_user),
     );
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
@@ -91,16 +91,17 @@ async fn delete_user(Json(payload): Json<EmailPayload>) -> impl IntoResponse {
     }
 }
 
-async fn update_user(Json(payload): Json<User>) {
-    print!("hallo");
+async fn update_user(Json(payload): Json<UserUpdate>) -> impl IntoResponse {
     let mut connection = db::establish_connection();
 
-    match User::find_by_email(&payload.email, &mut connection) {
-        Some(user) => {
-            println!("hallo {:?}", user);
-        }
-        None => {
-            println!("123")
-        }
+    match User::update_by_email(payload, &mut connection) {
+        Ok(_) => Response::builder()
+            .status(StatusCode::OK)
+            .body(Body::from("Updated User"))
+            .unwrap(),
+        Err(e) => Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(e.to_string().into())
+            .unwrap(),
     }
 }

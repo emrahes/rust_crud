@@ -3,9 +3,16 @@ use diesel;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::error::Error;
+use std::{error::Error, f64::consts::E};
 use uuid::Uuid;
 use validator::Validate;
+#[derive(Deserialize, Debug, Validate, AsChangeset)]
+#[diesel(table_name = crate::schema::users)]
+pub struct UserUpdate {
+    pub name: Option<String>,
+    pub email: String,
+    pub password: Option<String>,
+}
 
 #[derive(Deserialize, Debug, Validate)]
 pub struct UserWithoutId {
@@ -20,7 +27,9 @@ pub struct EmailPayload {
     pub email: String,
 }
 
-#[derive(Deserialize, Serialize, Debug, Queryable, Selectable, Insertable, Validate)]
+#[derive(
+    Deserialize, Serialize, Debug, Queryable, Selectable, Insertable, Validate, AsChangeset,
+)]
 #[diesel(table_name = crate::schema::users)]
 pub struct User {
     pub id: Uuid,
@@ -88,6 +97,23 @@ impl User {
 
         match user {
             Ok(_) => Ok("User deleted".to_string()),
+            Err(e) => Err(Box::new(e)),
+        }
+    }
+
+    pub fn update_by_email(
+        user: UserUpdate,
+        conn: &mut PgConnection,
+    ) -> Result<String, Box<dyn Error>> {
+        use crate::schema::users::dsl::*;
+
+        let data = diesel::update(users)
+            .filter(email.eq(&user.email))
+            .set(&user)
+            .execute(conn);
+
+        match data {
+            Ok(_) => Ok("User updated".to_string()),
             Err(e) => Err(Box::new(e)),
         }
     }
