@@ -49,7 +49,6 @@ async fn create_user(
 }
 
 async fn get_user(Json(payload): Json<EmailPayload>) -> impl IntoResponse {
-    println!("hallo");
     match payload.validate() {
         Ok(_) => {}
         Err(e) => {
