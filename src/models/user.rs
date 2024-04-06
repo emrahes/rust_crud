@@ -1,11 +1,14 @@
 use diesel;
 
+use crate::hashing::hashing::hash_my_password;
+use anyhow::Result;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{error::Error, f64::consts::E};
 use uuid::Uuid;
 use validator::Validate;
+
 #[derive(Deserialize, Debug, Validate, AsChangeset)]
 #[diesel(table_name = crate::schema::users)]
 pub struct UserUpdate {
@@ -49,19 +52,24 @@ pub struct UserWithoutPassword {
 }
 
 impl User {
-    pub fn new(user: UserWithoutId) -> Self {
-        User {
+    pub fn new(user: UserWithoutId) -> anyhow::Result<Self> {
+        let password_hash = match hash_my_password(user.password) {
+            Ok(hash) => hash,
+            Err(e) => return Err(anyhow::anyhow!("Failed to hash password: {}", e)),
+        };
+
+        Ok(User {
             id: Uuid::new_v4(),
             name: user.name,
             email: user.email,
-            password: user.password,
-        }
+            password: password_hash.to_string(),
+        })
     }
 
-    pub fn create(user: UserWithoutId, conn: &mut PgConnection) -> Result<String, Box<dyn Error>> {
+    pub fn create(user: UserWithoutId, conn: &mut PgConnection) -> anyhow::Result<String> {
         use crate::schema::users;
 
-        let new_user = User::new(user);
+        let new_user = User::new(user)?;
 
         match diesel::insert_into(users::table)
             .values(new_user)
@@ -74,7 +82,7 @@ impl User {
             }
             Err(e) => {
                 println!("Error creating user: {:?}", e);
-                Err(Box::new(e))
+                Err(anyhow::anyhow!("Failed to create user: {}", e))
             }
         }
     }

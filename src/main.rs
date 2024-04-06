@@ -4,6 +4,7 @@ mod models {
     pub mod post;
     pub mod user;
 }
+mod hashing;
 
 use axum::{
     body::Body,
