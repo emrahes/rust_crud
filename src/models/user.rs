@@ -10,6 +10,7 @@ use validator::Validate;
 #[diesel(table_name = crate::schema::users)]
 pub struct UserUpdate {
     pub name: Option<String>,
+    #[validate(email)]
     pub email: String,
     pub password: Option<String>,
 }
